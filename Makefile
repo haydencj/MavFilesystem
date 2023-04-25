@@ -1,5 +1,5 @@
-msf: msf.c
-	gcc msf.c -o msf -g -Wall -Werror
+mfs: mfs.c
+	gcc mfs.c -o mfs -g -Wall -Werror
 
 clean:
-	rm ./msf
+	rm ./mfs

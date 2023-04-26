@@ -416,6 +416,7 @@ void delete(char* filename)
             delete_index = i;
             break;
         }
+        
     }
 
     if(delete_index == -1)
@@ -428,6 +429,35 @@ void delete(char* filename)
     uint32_t inode_index = directory[delete_index].inode;
     inodes[inode_index].in_use = 0;
     
+}
+void undel(char* filename)
+{
+    if(filename == NULL)
+    {
+        printf("ERROR: Filename not specified.\n");
+        return;
+    }
+    
+    int undelete_index = -1;
+    for(int i = 0; i < NUM_FILES; i++)
+    {
+        if(strcmp(filename, directory[i].filename) == 0)
+        {
+            undelete_index = i;
+            break;
+        }
+        
+    }
+
+    if(undelete_index == -1)
+    {
+        printf("ERROR: File does not exist.\n");
+        return;
+    }
+
+    directory[undelete_index].in_use = 1;
+    uint32_t inode_index = directory[undelete_index].inode;
+    inodes[inode_index].in_use = 1;
 }
 
 int main()
@@ -555,6 +585,11 @@ int main()
     if(strcmp("delete", token[0]) == 0)
     {
       delete(token[1]);
+    }
+    
+    if (strcmp("undel", token[0]) == 0)
+    {
+        undel(token[1]);
     }
 
     if(strcmp("quit", token[0]) == 0)

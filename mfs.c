@@ -460,6 +460,25 @@ void undel(char* filename)
     inodes[inode_index].in_use = 1;
 }
 
+void encrpyt(char* filename, char* key)
+{
+    if(filename == NULL)
+    {
+        printf("ERROR: Filename not specified.\n");
+        return;
+    }
+ 
+    // calculate length of input string
+    int len = strlen(filename);
+ 
+    // perform XOR operation of key
+    // with every character in string
+    for (int i = 0; i < len; i++)
+    {
+        filename[i] = filename[i] ^ *key;
+    }
+}
+
 int main()
 {
 
@@ -590,6 +609,16 @@ int main()
     if (strcmp("undel", token[0]) == 0)
     {
         undel(token[1]);
+    }
+
+    if (strcmp("encrypt", token[0]) == 0)
+    {
+        encrpyt(token[1], token[2]);
+    }
+
+    if (strcmp("decrypt", token[0]) == 0)
+    {
+        encrpyt(token[1], token[2]);
     }
 
     if(strcmp("quit", token[0]) == 0)

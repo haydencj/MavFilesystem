@@ -460,7 +460,7 @@ void undel(char* filename)
     inodes[inode_index].in_use = 1;
 }
 
-void encrpyt(char* filename, char* key)
+void encrypt(char* filename, char* key)
 {
     if(filename == NULL)
     {
@@ -643,7 +643,7 @@ int main()
             continue; 
         }
 
-        encrpyt(token[1], token[2]);
+        encrypt(token[1], token[2]);
     }
 
     if (strcmp("decrypt", token[0]) == 0)
@@ -660,7 +660,7 @@ int main()
             continue; 
         }
 
-        encrpyt(token[1], token[2]);
+        encrypt(token[1], token[2]);
     }
 
     if(strcmp("quit", token[0]) == 0)

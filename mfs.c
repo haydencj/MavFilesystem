@@ -467,16 +467,34 @@ void encrpyt(char* filename, char* key)
         printf("ERROR: Filename not specified.\n");
         return;
     }
+
+    FILE *readFile;
+    FILE *writeFile;
  
-    // calculate length of input string
-    int len = strlen(filename);
- 
-    // perform XOR operation of key
-    // with every character in string
-    for (int i = 0; i < len; i++)
+    readFile = fopen(filename, "r");
+    writeFile = fopen(filename, "r+");
+    char c;
+
+    if(!readFile || !writeFile)
     {
-        filename[i] = filename[i] ^ *key;
+        printf("ERROR: File does not exist.\n");
+        return;
     }
+
+    do
+    {
+        c = fgetc(readFile);
+        if(feof(readFile))
+        {
+            break;
+        }
+        c = c ^ *key;
+        fputc(c, writeFile);
+    } 
+    while(1);
+    
+    fclose(readFile);
+    fclose(writeFile);
 }
 
 int main()
@@ -613,11 +631,35 @@ int main()
 
     if (strcmp("encrypt", token[0]) == 0)
     {
+        if(token[1] == NULL)
+        {
+            printf("ERROR: No filename specified\n");
+            continue; 
+        }
+
+        if(token[2] == NULL)
+        {
+            printf("ERROR: No key specified\n");
+            continue; 
+        }
+
         encrpyt(token[1], token[2]);
     }
 
     if (strcmp("decrypt", token[0]) == 0)
     {
+        if(token[1] == NULL)
+        {
+            printf("ERROR: No filename specified\n");
+            continue; 
+        }
+
+        if(token[2] == NULL)
+        {
+            printf("ERROR: No key specified\n");
+            continue; 
+        }
+
         encrpyt(token[1], token[2]);
     }
 

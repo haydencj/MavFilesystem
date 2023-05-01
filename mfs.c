@@ -492,9 +492,19 @@ void delete(char* filename)
         return;
     }
 
-    directory[delete_index].in_use = 0;
     uint32_t inode_index = directory[delete_index].inode;
-    inodes[inode_index].in_use = 0;
+    if((inodes[inode_index].attribute & READ_ONLY) == 2)
+    {
+        printf("ERROR: %s is read-only.\n", filename);
+    }
+    else
+    {
+        directory[delete_index].in_use = 0;
+        inode_index = directory[delete_index].inode;
+        inodes[inode_index].in_use = 0;
+    }
+
+    return;
     
 }
 void undel(char* filename)

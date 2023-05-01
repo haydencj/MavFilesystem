@@ -203,13 +203,14 @@ void savefs()
         printf("ERROR: Disk image is not open\n");
     }
 
-    fp = fopen(image_name, "w");
+    // fp = fopen(image_name, "w");
+    FILE* fp2 = fopen(image_name, "w");
 
-    fwrite(&data[0][0], BLOCK_SIZE, NUM_BLOCKS, fp);
+    fwrite(&data[0][0], BLOCK_SIZE, NUM_BLOCKS, fp2);
 
     memset(image_name, 0, 64);
 
-    fclose(fp);
+    fclose(fp2);
 }
 
 void openfs(char * filename)
@@ -290,7 +291,17 @@ void list(char* attrib)
 
             if(((inodes[inode_index].attribute & HIDDEN) != 1) && (list_attributes))
             {
-                printf("%s\tAttribute: %d\n", filename, inodes[inode_index].attribute);
+                printf("%s\tAttribute: ", filename);
+                        
+                for (int i = 7; i >= 0; i--) {
+                    uint8_t mask = 1 << i;
+                    uint8_t bit = (inodes[inode_index].attribute & mask) >> i;
+                    printf("%d", bit);
+                }
+
+                printf("\n");
+            
+
             }
             else if((inodes[inode_index].attribute & HIDDEN) != 1)
             {

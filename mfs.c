@@ -14,6 +14,10 @@
 #define NUM_FILES 256
 #define FIRST_DATA_BLOCK 1001
 #define MAX_FILE_SIZE 1048576
+#define HIDDEN 0x00000001
+#define HIDDEN_MASK 0xFE
+#define READ_ONLY 0x2
+#define READ_MASK 0xFD
 
 uint8_t data[NUM_BLOCKS][BLOCK_SIZE];
 
@@ -94,6 +98,7 @@ int32_t findFreeInodeBlock(int32_t inode)
     {
         if(inodes[inode].blocks[i] == -1)
         {
+            inodes[inode].blocks[i] = 0;
             return i;
         }
     }
@@ -126,7 +131,7 @@ void init()
         {
             inodes[i].blocks[j] = -1;
             inodes[i].in_use = 0; 
-            inodes[i].attribute = 0;
+            inodes[i].attribute = 0x0;
             inodes[i].file_size = 0;
         }
     }
@@ -177,7 +182,7 @@ void createfs(char * filename)
         {
             inodes[i].blocks[j] = -1;
             inodes[i].in_use = 0; 
-            inodes[i].attribute = 0;
+            inodes[i].attribute = 0x0;
             inodes[i].file_size = 0;
         }
     }
@@ -211,6 +216,11 @@ void openfs(char * filename)
 {
     fp = fopen(filename, "r");
 
+    if(fp == NULL)
+    {
+        printf("ERROR. File not found\n");
+    }
+
     strncpy(image_name, filename, strlen(filename));
 
     fread(&data[0][0], BLOCK_SIZE, NUM_BLOCKS, fp);
@@ -232,10 +242,31 @@ void closefs()
     memset(image_name, 0, 64);
 }
 
-void list()
+void list(char* attrib)
 {
     int i;
-    int not_found = 1; 
+    int not_found = 1;
+    int list_hidden = 0;
+    int list_attributes = 0;
+
+    if(attrib == NULL)
+    {
+        // do nothing
+    }
+    else if(!strcmp(attrib, "-h"))
+    {
+        list_hidden = 1;
+    }
+    else if(!strcmp(attrib, "-a"))
+    {
+        list_attributes = 1;
+    }
+    else
+    {
+        printf("ERROR: Incorrect parameter %s.\n", attrib);
+        return;
+    }
+    
 
     for(i = 0; i < NUM_FILES; i++)
     {
@@ -244,9 +275,33 @@ void list()
         {
             not_found = 0;
             char filename[65];
+            uint32_t inode_index = directory[i].inode;
+
             memset(filename, 0, 65);
             strncpy(filename, directory[i].filename, strlen(directory[i].filename));
-            printf("%s\n", filename);
+ /*
+                +h +r 1
+                +h 1
+                +r 1
+                nothing: 0
+            
+            */
+
+
+            if(((inodes[inode_index].attribute & HIDDEN) != 1) && (list_attributes))
+            {
+                printf("%s\tAttribute: %d\n", filename, inodes[inode_index].attribute);
+            }
+            else if((inodes[inode_index].attribute & HIDDEN) != 1)
+            {
+                printf("%s\n", filename);
+
+            }
+            else if(list_hidden)
+            {
+                printf("%s\n", filename);
+            }
+
         }
 
     }
@@ -665,6 +720,54 @@ void encrypt(char* filename, char* key)
     fclose(writeFile);
 }
 
+void attrib(char* attribute, char* filename)
+{
+    int change_attrib_index = -1;
+    for(int i = 0; i < NUM_FILES; i++)
+    {
+        if(strcmp(filename, directory[i].filename) == 0)
+        {
+            change_attrib_index = i;
+            break;
+        }
+    }
+
+    if(change_attrib_index == -1)
+    {
+        printf("ERROR: File not found.\n");
+        return;
+    }
+
+    uint32_t inode_index = directory[change_attrib_index].inode;
+
+    // +h, -h, +r, -r
+    if(strcmp(attribute, "+h") == 0)
+    {
+        inodes[inode_index].attribute |= HIDDEN;
+        return;
+    }
+    if(strcmp(attribute, "+r") == 0)
+    {
+        inodes[inode_index].attribute |= READ_ONLY;
+        return;
+    }
+    if(strcmp(attribute, "-h") == 0)
+    {
+        inodes[inode_index].attribute &= HIDDEN_MASK;
+        return;
+    }
+    if(strcmp(attribute, "-r") == 0)
+    {
+        inodes[inode_index].attribute &= READ_MASK;
+        return;
+    }
+
+    printf("ERROR: Incorrent attribute.\n");
+
+
+
+}
+
 int main()
 {
 
@@ -758,7 +861,7 @@ int main()
             continue;
         }
 
-        list();
+        list(token[1]);
     }
 
     if(strcmp("df", token[0]) == 0)
@@ -857,6 +960,23 @@ int main()
     if (strcmp("undel", token[0]) == 0)
     {
         undel(token[1]);
+    }
+
+    // attrib +h filename.txt
+    if(strcmp("attrib", token[0]) == 0)
+    {
+        if(token[1] == NULL)
+        {
+            printf("ERROR: No attribute listed.\n");
+            continue;
+        }
+        if(token[2] == NULL)
+        {
+            printf("ERROR: No filename listed.\n");
+            continue;
+        }
+
+        attrib(token[1], token[2]);
     }
 
     if(strcmp("quit", token[0]) == 0)

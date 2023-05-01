@@ -628,6 +628,43 @@ void read_bytes(char* filename, uint32_t start_byte, uint32_t req_num_bytes)
   return;
 }
 
+void encrypt(char* filename, char* key)
+{
+    if(filename == NULL)
+    {
+        printf("ERROR: Filename not specified.\n");
+        return;
+    }
+
+    FILE *readFile;
+    FILE *writeFile;
+ 
+    readFile = fopen(filename, "r");
+    writeFile = fopen(filename, "r+");
+    char c;
+
+    if(!readFile || !writeFile)
+    {
+        printf("ERROR: File does not exist.\n");
+        return;
+    }
+
+    do
+    {
+        c = fgetc(readFile);
+        if(feof(readFile))
+        {
+            break;
+        }
+        c = c ^ *key;
+        fputc(c, writeFile);
+    } 
+    while(1);
+    
+    fclose(readFile);
+    fclose(writeFile);
+}
+
 int main()
 {
 
@@ -776,6 +813,40 @@ int main()
       }
 
       read_bytes(token[1], (uint32_t) atoi(token[2]), (uint32_t) atoi(token[3]) );
+    }
+
+    if (strcmp("encrypt", token[0]) == 0)
+    {
+        if(token[1] == NULL)
+        {
+            printf("ERROR: No filename specified\n");
+            continue; 
+        }
+
+        if(token[2] == NULL)
+        {
+            printf("ERROR: No key specified\n");
+            continue; 
+        }
+
+        encrypt(token[1], token[2]);
+    }
+
+    if (strcmp("decrypt", token[0]) == 0)
+    {
+        if(token[1] == NULL)
+        {
+            printf("ERROR: No filename specified\n");
+            continue; 
+        }
+
+        if(token[2] == NULL)
+        {
+            printf("ERROR: No key specified\n");
+            continue; 
+        }
+
+        encrypt(token[1], token[2]);
     }
 
     if(strcmp("delete", token[0]) == 0)

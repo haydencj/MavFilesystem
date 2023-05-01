@@ -142,7 +142,7 @@ uint32_t df()
 {
     int j;
     int count = 0;
-    for(j = FIRST_DATA_BLOCK; j < NUM_BLOCKS; j++)
+    for(j = 0; j < NUM_BLOCKS; j++)
     {
         if(free_blocks[j])
         {

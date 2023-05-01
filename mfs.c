@@ -64,6 +64,7 @@ int32_t findFreeBlock()
     {
         if(free_blocks[i])
         {
+            free_blocks[i] = 0;
             return i + 1001;
         }
     }
@@ -78,6 +79,7 @@ int32_t findFreeInode()
     {
         if(free_inodes[i])
         {
+            free_inodes[i] = 0;
             return i;
         }
     }
@@ -460,6 +462,83 @@ void undel(char* filename)
     inodes[inode_index].in_use = 1;
 }
 
+void retrieve(char* filename, char* new_filename)
+{
+  int i;
+  int directory_location = -1;
+  for(i = 0; i < NUM_FILES; i++)
+  {
+    if(!strcmp(directory[i].filename, filename))
+    {
+      directory_location = i;
+      break;
+    }
+  }
+
+
+  if(directory_location == -1)
+  {
+    printf("ERROR: File not found\n");
+    return;
+  }
+
+
+  int file_inode = directory[directory_location].inode;
+  
+
+  if(new_filename == NULL)
+  {
+    fp = fopen(filename, "w");
+  }
+  else
+  {
+    fp = fopen(new_filename, "w");
+  }
+
+  
+  // Record the file size to know how many bytes to copy,
+  // initialize offset and current_block
+  int32_t offset = 0;
+  int32_t current_block = 0;
+  int32_t copy_size = inodes[file_inode].file_size;
+
+
+  while(inodes[file_inode].blocks[current_block] != (int32_t) -1)
+  {
+    int32_t bytes;
+
+    // Save off the current block within our inode that has our data
+    int32_t block_index = inodes[file_inode].blocks[current_block];
+
+    fseek(fp, offset, SEEK_SET);
+
+    if(copy_size < BLOCK_SIZE)
+    {
+      bytes = fwrite(data[block_index], (int) copy_size, 1, fp);
+    }
+    else
+    {
+      bytes = fwrite(data[block_index], BLOCK_SIZE, 1, fp);
+    }
+
+
+    if( (bytes == 0) && (inodes[file_inode].blocks[current_block] != -1) )
+    {
+      printf("ERROR: An error occurred writing to the specified file\n");
+      return;
+    }
+
+    offset += BLOCK_SIZE;
+    copy_size -= BLOCK_SIZE;
+    current_block ++;
+  }
+
+
+
+  fclose(fp);
+
+}
+
 int main()
 {
 
@@ -580,6 +659,23 @@ int main()
         }
 
         insert(token[1]);
+    }
+
+    if(!strcmp("retrieve", token[0]))
+    {
+      if(!image_open)
+      {
+        printf("ERROR: Disk image is not open");
+        continue;
+      }
+
+      if(token[1] == NULL)
+      {
+        printf("ERROR: No filename specified\n");
+        continue;
+      }
+
+      retrieve(token[1], token[2]);
     }
 
     if(strcmp("delete", token[0]) == 0)

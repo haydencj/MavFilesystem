@@ -323,7 +323,7 @@ void insert(char * filename)
     // memory pool. Why? We are simulating the way the file system stores file data in
     // blocks of space on the disk. block_index will keep us pointing to the area of
     // the area that we will read from or write to.
-    int block_index = 0;
+    int block_index = -1;
 
       // find a free inode
       int32_t inode_index = findFreeInode();
@@ -340,6 +340,7 @@ void insert(char * filename)
       strncpy(directory[directory_entry].filename, filename, strlen(filename));
 
       inodes[inode_index].file_size = buf.st_size;
+      inodes[inode_index].in_use = 1;
  
     // copy_size is initialized to the size of the input file so each loop iteration we
     // will copy BLOCK_SIZE bytes from the file then reduce our copy_size counter by
@@ -392,8 +393,6 @@ void insert(char * filename)
       // Increase the offset into our input file by BLOCK_SIZE.  This will allow
       // the fseek at the top of the loop to position us to the correct spot.
       offset    += BLOCK_SIZE;
-
-      block_index = findFreeBlock();
     }
 
     // We are done copying from the input file so close it out.
@@ -539,6 +538,96 @@ void retrieve(char* filename, char* new_filename)
 
 }
 
+void read_bytes(char* filename, uint32_t start_byte, uint32_t req_num_bytes)
+{
+  int file_location = -1;
+  int i;
+  for(i = 0; i < NUM_FILES; i++)
+  {
+    if(!strcmp(directory[i].filename, filename))
+    {
+      file_location = i;
+      break;
+    }
+  }
+
+
+  if(file_location == -1)
+  {
+    printf("ERROR: File not found\n");
+    return;
+  }
+
+
+  if(req_num_bytes == 0)
+  {
+    printf("ERROR: No bytes to read\n");
+    return;
+  }
+
+  
+  int32_t file_inode = directory[file_location].inode;
+  if(req_num_bytes > inodes[file_inode].file_size)
+  {
+    printf("ERROR: Request exceeds file size\n");
+    return;
+  }
+
+
+  uint32_t file_size = inodes[file_inode].file_size;
+  if( (start_byte + req_num_bytes) > file_size)
+  {
+    printf("ERROR: Specifications of request exceed file size\n");
+    return;
+  }
+
+  
+  uint32_t start_block_index = 0;
+  uint32_t temp_start_byte = start_byte;
+  uint32_t req_bytes_temp = req_num_bytes;
+  uint32_t num_blocks_to_read = 1;
+
+  // Find out how many blocks we need to read
+  while(req_bytes_temp > (uint32_t)BLOCK_SIZE)
+  {
+    num_blocks_to_read++;
+    req_bytes_temp -= BLOCK_SIZE;
+  }
+  
+  
+  // Find out the first index of our block array within inode
+  // we should start looking at
+  // We are also able to then record the byte we should start
+  // reading at within the start block
+  while(temp_start_byte > (uint32_t)BLOCK_SIZE)
+  {
+    start_block_index++;
+    temp_start_byte -= (uint32_t)BLOCK_SIZE;
+  }
+       
+
+  int32_t remaining_bytes = req_num_bytes;
+  int32_t data_block_location = inodes[file_inode].blocks[start_block_index];
+  int32_t curr_block_index = start_block_index;
+
+  while(remaining_bytes != 0)
+  {
+    if(temp_start_byte == 1023)
+    {
+      temp_start_byte = 0;
+      data_block_location = inodes[file_inode].blocks[curr_block_index];
+    }
+
+    printf("%x", data[data_block_location][temp_start_byte]);
+
+    temp_start_byte++;
+    remaining_bytes--;
+  }
+  printf("\n");
+
+  return;
+}
+
 int main()
 {
 
@@ -676,6 +765,17 @@ int main()
       }
 
       retrieve(token[1], token[2]);
+    }
+
+    if(!strcmp("read", token[0]))
+    {
+      if(!image_open)
+      {
+        printf("ERROR: Disk image is not open\n");
+        continue;
+      }
+
+      read_bytes(token[1], (uint32_t) atoi(token[2]), (uint32_t) atoi(token[3]) );
     }
 
     if(strcmp("delete", token[0]) == 0)
